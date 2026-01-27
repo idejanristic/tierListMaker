@@ -1,35 +1,60 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import { DndContext, useDraggable } from '@dnd-kit/core'
 
-function App() {
-  const [count, setCount] = useState(0)
+type Draggable = {
+  id: string
+  src: string
+  dz?: string
+}
+
+const defaultDraggables: Draggable[] = [
+  { id: crypto.randomUUID(), src: "GolemCard.png" },
+  { id: crypto.randomUUID(), src: "MegaKnight.png" },
+  { id: crypto.randomUUID(), src: "BabyDragonCard.png" },
+  { id: crypto.randomUUID(), src: "BarbariansCard.png" },
+  { id: crypto.randomUUID(), src: "BomberCard.png" },
+  { id: crypto.randomUUID(), src: "DarkPrinceCard.png" },
+  { id: crypto.randomUUID(), src: "ElixirGolemCard.png" },
+  { id: crypto.randomUUID(), src: "MinerCard.png" },
+  { id: crypto.randomUUID(), src: "PEKKACard.png" },
+  { id: crypto.randomUUID(), src: "RagingPrinceCard.png" },
+  { id: crypto.randomUUID(), src: "SkeletonsCard.png" },
+]
+
+export default function App() {
+  const [draggables, setDraggables] = useState<Draggable[]>(defaultDraggables);
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className='w-screen h-screen flex justify-center items-center'>
+        <DndContext>
+          <div className='flex gap-2'>
+            {draggables.map((draggable, index) => (
+              <Draggable key={draggable.id} draggable={draggable} />
+
+            ))}
+          </div>
+        </DndContext>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
 
-export default App
+function Draggable({ draggable }: { draggable: Draggable }) {
+  const { id, src } = draggable;
+  const { setNodeRef, listeners, attributes, transform } = useDraggable({ id });
+
+  const style = {
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
+  }
+
+  return (
+    <button ref={setNodeRef} className='cursor-pointer' style={style} {...listeners} {...attributes}  >
+      <img src={`/src/assets/${src}`} alt="draggable" className='max-h-30 aspect-[0.833] object-cover' />
+    </button>
+  );
+
+}
