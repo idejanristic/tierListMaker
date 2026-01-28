@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-import { DndContext, useDraggable } from '@dnd-kit/core'
+import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core'
 
 type Draggable = {
   id: string
@@ -27,8 +27,9 @@ export default function App() {
 
   return (
     <>
-      <div className='w-screen h-screen flex justify-center items-center'>
+      <div className='w-screen h-screen flex flex-col gap-16 justify-center items-center'>
         <DndContext>
+          <DropZone />
           <div className='flex gap-2'>
             {draggables.map((draggable, index) => (
               <Draggable key={draggable.id} draggable={draggable} />
@@ -39,6 +40,20 @@ export default function App() {
       </div>
     </>
   )
+}
+
+function DropZone() {
+  const { setNodeRef, isOver } = useDroppable({ id: 'drop-zone' });
+
+  const style = {
+    backgroundColor: isOver ? '#444' : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex justify-center items-center mb-4'>
+      <p className='text-gray-400'>Drop Here</p>
+    </div>
+  );
 }
 
 function Draggable({ draggable }: { draggable: Draggable }) {
