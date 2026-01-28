@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core'
+import { DndContext, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core'
 
 type Draggable = {
   id: string
@@ -9,31 +9,44 @@ type Draggable = {
 }
 
 const defaultDraggables: Draggable[] = [
-  { id: crypto.randomUUID(), src: "GolemCard.png" },
-  { id: crypto.randomUUID(), src: "MegaKnight.png" },
-  { id: crypto.randomUUID(), src: "BabyDragonCard.png" },
-  { id: crypto.randomUUID(), src: "BarbariansCard.png" },
-  { id: crypto.randomUUID(), src: "BomberCard.png" },
-  { id: crypto.randomUUID(), src: "DarkPrinceCard.png" },
-  { id: crypto.randomUUID(), src: "ElixirGolemCard.png" },
-  { id: crypto.randomUUID(), src: "MinerCard.png" },
-  { id: crypto.randomUUID(), src: "PEKKACard.png" },
-  { id: crypto.randomUUID(), src: "RagingPrinceCard.png" },
-  { id: crypto.randomUUID(), src: "SkeletonsCard.png" },
+  { id: crypto.randomUUID(), src: "GolemCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "MegaKnight.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "BabyDragonCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "BarbariansCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "BomberCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "DarkPrinceCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "ElixirGolemCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "MinerCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "PEKKACard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "RagingPrinceCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "SkeletonsCard.png", dz: undefined },
 ]
 
 export default function App() {
   const [draggables, setDraggables] = useState<Draggable[]>(defaultDraggables);
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    if (over && over.id === 'drop-zone') {
+      setDraggables((prevDraggables) =>
+        prevDraggables.map((draggable) =>
+          draggable.id === active.id ? { ...draggable, dz: 'drop-zone' } : draggable
+        )
+      );
+    }
+  }
+
   return (
     <>
       <div className='w-screen h-screen flex flex-col gap-16 justify-center items-center'>
-        <DndContext>
-          <DropZone />
+        <DndContext onDragEnd={handleDragEnd}>
+          <DropZone draggables={draggables} />
           <div className='flex gap-2'>
-            {draggables.map((draggable, index) => (
+            {draggables.filter(draggable => !draggable.dz).map((draggable) => (
               <Draggable key={draggable.id} draggable={draggable} />
-
             ))}
           </div>
         </DndContext>
@@ -42,12 +55,25 @@ export default function App() {
   )
 }
 
-function DropZone() {
+function DropZone({ draggables }: { draggables?: Draggable[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'drop-zone' });
 
   const style = {
     backgroundColor: isOver ? '#444' : undefined,
   };
+
+  console.log('Dropped items:', draggables);
+  if (draggables && draggables.length > 0) {
+    return (
+      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-center mb-4'>
+        <div className='flex gap-2'>
+          {draggables.filter(draggable => draggable.dz).map((draggable) => (
+            <Draggable key={draggable.id} draggable={draggable} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex justify-center items-center mb-4'>
