@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import { DndContext, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable'
 
 type Draggable = {
   id: string
@@ -30,13 +31,19 @@ export default function App() {
 
     if (!over) return;
 
-    if (over && over.id === 'drop-zone') {
-      setDraggables((prevDraggables) =>
-        prevDraggables.map((draggable) =>
-          draggable.id === active.id ? { ...draggable, dz: 'drop-zone' } : draggable
-        )
-      );
-    }
+    const overId = over.id as string;
+    const activeId = active.id as string;
+
+
+    setDraggables((prev) => {
+      const oldIndex = prev.findIndex(item => item.id === activeId);
+      const newIndex = prev.findIndex(item => item.id === overId);
+
+      if (oldIndex === newIndex) return prev;
+
+      return arrayMove(prev, oldIndex, newIndex);
+
+    });
   }
 
   return (
@@ -62,16 +69,19 @@ function DropZone({ draggables }: { draggables?: Draggable[] }) {
     backgroundColor: isOver ? '#444' : undefined,
   };
 
-  console.log('Dropped items:', draggables);
-  if (draggables && draggables.length > 0) {
+  const items = draggables?.filter(draggable => draggable.dz);
+
+  if (items && items.length > 0) {
     return (
       <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-center mb-4'>
         <div className='flex gap-2'>
-          {draggables.filter(draggable => draggable.dz).map((draggable) => (
-            <Draggable key={draggable.id} draggable={draggable} />
-          ))}
+          <SortableContext items={items?.map(item => item.id)}>
+            {items?.map((draggable) => (
+              <Draggable key={draggable.id} draggable={draggable} />
+            ))}
+          </SortableContext>
         </div>
-      </div>
+      </div >
     );
   }
 
@@ -84,7 +94,7 @@ function DropZone({ draggables }: { draggables?: Draggable[] }) {
 
 function Draggable({ draggable }: { draggable: Draggable }) {
   const { id, src } = draggable;
-  const { setNodeRef, listeners, attributes, transform } = useDraggable({ id });
+  const { setNodeRef, listeners, attributes, transform } = useSortable({ id });
 
   const style = {
     transform: transform
