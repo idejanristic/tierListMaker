@@ -41,12 +41,20 @@ export default function App() {
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
 
-    if (!over) return;
+    if (!over || !activeDraggable) return;
 
     const overId = over.id as string;
     const activeId = active.id as string;
 
     setDraggables((prev) => {
+      // If we're hovering the empty space in a drop zone
+      if (overId === 'drop-zone') {
+        const newDraggable = { ...activeDraggable, dz: 'drop-zone' };
+
+        return [...prev.filter(item => item.id !== activeId), newDraggable];
+      }
+
+      // If we're hovering the space inside a SortableContext
       const overDraggable = prev.find(item => item.id === overId);
       const overDropZone = !!overDraggable?.dz;
 
@@ -56,8 +64,6 @@ export default function App() {
       if (oldIndex === newIndex) return prev;
 
       const shiftedItems = arrayMove(prev, oldIndex, newIndex);
-
-
 
       shiftedItems[newIndex] = { ...shiftedItems[newIndex], dz: overDropZone ? 'drop-zone' : undefined };
 
