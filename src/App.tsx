@@ -10,24 +10,45 @@ type Draggable = {
   dz?: string
 }
 
+type DropZone = {
+  id: string,
+  draggables: string[]
+}
+
 const defaultDraggables: Draggable[] = [
-  { id: crypto.randomUUID(), src: "GolemCard.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "MegaKnight.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "BabyDragonCard.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "BarbariansCard.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "BomberCard.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "DarkPrinceCard.png", dz: 'drop-zone' },
-  { id: crypto.randomUUID(), src: "ElixirGolemCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "MinerCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "PEKKACard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "RagingPrinceCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "SkeletonsCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "GolemCard.png" },
+  { id: crypto.randomUUID(), src: "MegaKnight.png" },
+  { id: crypto.randomUUID(), src: "BabyDragonCard.png" },
+  { id: crypto.randomUUID(), src: "BarbariansCard.png" },
+  { id: crypto.randomUUID(), src: "BomberCard.png" },
+  { id: crypto.randomUUID(), src: "DarkPrinceCard.png" },
+  { id: crypto.randomUUID(), src: "ElixirGolemCard.png" },
+  { id: crypto.randomUUID(), src: "MinerCard.png" },
+  { id: crypto.randomUUID(), src: "PEKKACard.png" },
+  { id: crypto.randomUUID(), src: "RagingPrinceCard.png" },
+  { id: crypto.randomUUID(), src: "SkeletonsCard.png" },
 ];
+
+const defaultDropZones: DropZone[] = [
+  { id: "S", draggables: [] },
+  { id: "A", draggables: [] },
+  { id: "B", draggables: [] },
+  { id: "C", draggables: [] },
+  { id: "D", draggables: [] },
+  {
+    id: "free",
+    draggables: defaultDraggables.map((draggable) => draggable.id),
+  },
+];
+
+const dropZoneIds = defaultDropZones.map(dz => dz.id);
 
 const activeDraggableAtom = atom<Draggable>();
 
 export default function App() {
   const [draggables, setDraggables] = useState<Draggable[]>(defaultDraggables);
+  const [dropZones, setDropZones] = useState<DropZone[]>(defaultDropZones);
+
   const [activeDraggable, setActiveDraggable] = useAtom(activeDraggableAtom);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -44,30 +65,65 @@ export default function App() {
     if (!over || !activeDraggable) return;
 
     const overId = over.id as string;
-    const activeId = active.id as string;
+    const activeDraggableId = active.id as string;
 
-    setDraggables((prev) => {
-      // If we're hovering the empty space in a drop zone
-      if (overId === 'drop-zone') {
-        const newDraggable = { ...activeDraggable, dz: 'drop-zone' };
+    setDropZones((prev) => {
 
-        return [...prev.filter(item => item.id !== activeId), newDraggable];
+      const currentDropZone = dropZones.find(dz => dz.draggables.some(draggable => draggable === activeDraggableId));
+
+      if (!currentDropZone) return prev;
+
+      const currentDropZoneId = currentDropZone.id;
+
+      // Case #1 If we're hovering the empty space in a drop zone
+      if (dropZoneIds.includes(overId)) {
+        const dropZone = dropZones.find(dz => dz.id === overId);
+
+        if (!dropZone) return prev;
+
+        const newDraggables = [
+          ...dropZone.draggables.filter(item => item !== activeDraggableId),
+          activeDraggableId
+        ];
+
+        return prev.map((dz) => {
+          // If not the old or new, just return as is
+          if (dz.id !== overId && dz.id !== currentDropZoneId) return dz;
+
+          // Remove from old one if we went across drop zones
+          if (dz.id === currentDropZoneId && currentDropZoneId !== overId) {
+            return {
+              ...dz,
+              draggables: dz.draggables.filter(
+                (draggable) => draggable !== activeDraggableId,
+              ),
+            };
+          }
+
+          // Add to new one
+          return { ...dz, draggables: newDraggables };
+        });
       }
 
-      // If we're hovering the space inside a SortableContext
-      const overDraggable = prev.find(item => item.id === overId);
-      const overDropZone = !!overDraggable?.dz;
+      // Case #2 If we're re-arranging within the same drop zone  
+      if (currentDropZone.draggables.some(item => item === overId)) {
+        const oldIndex = currentDropZone.draggables.findIndex(item => item === activeDraggableId);
+        const newIndex = currentDropZone.draggables.findIndex(item => item === overId);
 
-      const oldIndex = prev.findIndex(item => item.id === activeId);
-      const newIndex = prev.findIndex(item => item.id === overId);
+        if (oldIndex === newIndex) return prev;
 
-      if (oldIndex === newIndex) return prev;
+        const newDraggables = arrayMove(currentDropZone.draggables, oldIndex, newIndex);
 
-      const shiftedItems = arrayMove(prev, oldIndex, newIndex);
+        return prev.map((dz) => {
+          if (dz.id === currentDropZoneId) {
+            return { ...dz, draggables: newDraggables };
+          }
+          return dz;
+        });
+      }
 
-      shiftedItems[newIndex] = { ...shiftedItems[newIndex], dz: overDropZone ? 'drop-zone' : undefined };
-
-      return shiftedItems;
+      // Case #3 If we're re-areranging between drop zones
+      return prev;
     });
   }
 
@@ -79,20 +135,15 @@ export default function App() {
 
   return (
     <>
-      <div className='w-screen h-screen flex flex-col gap-16 justify-center items-center'>
+      <div className='w-full h-screen flex flex-col gap-6 justify-start items-center'>
         <DndContext
           onDragEnd={handleDragEnd}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
         >
-          <DropZone draggables={draggables} />
-          <SortableContext items={freeDraggables.map(item => item.id)}>
-            <div className='flex gap-2'>
-              {freeDraggables.map((draggable) => (
-                <Draggable key={draggable.id} draggable={draggable} />
-              ))}
-            </div>
-          </SortableContext>
+          {dropZones.map((dropZone) => (
+            <DropZone key={dropZone.id} dropZone={dropZone} />
+          ))}
           <DragOverlay>
             {activeDraggable && <DraggableContent draggable={activeDraggable} isDragging={true} />}
           </DragOverlay>
@@ -102,23 +153,28 @@ export default function App() {
   )
 }
 
-function DropZone({ draggables }: { draggables?: Draggable[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'drop-zone' });
+function DropZone({ dropZone }: { dropZone: DropZone }) {
+  const { id, draggables } = dropZone;
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   const style = {
     backgroundColor: isOver ? '#444' : undefined,
   };
 
-  const items = draggables?.filter(draggable => draggable.dz);
-
-  if (items && items.length > 0) {
+  if (draggables && draggables.length > 0) {
     return (
       <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-start mb-4'>
         <div className='flex gap-2'>
-          <SortableContext items={items?.map(item => item.id)}>
-            {items?.map((draggable) => (
-              <Draggable key={draggable.id} draggable={draggable} />
-            ))}
+          <SortableContext items={draggables}>
+            {draggables.map((draggableId) => {
+              const draggable = defaultDraggables.find(item => item.id === draggableId);
+
+              if (!draggable) return null;
+
+              return (
+                <Draggable key={draggable.id} draggable={draggable} />
+              );
+            })}
           </SortableContext>
         </div>
       </div >
