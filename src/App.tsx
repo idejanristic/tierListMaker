@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import './App.css'
-import { DndContext, useDraggable, useDroppable, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable'
+import { atom, useAtom, useAtomValue } from 'jotai'
 
 type Draggable = {
   id: string
@@ -21,15 +22,25 @@ const defaultDraggables: Draggable[] = [
   { id: crypto.randomUUID(), src: "PEKKACard.png", dz: undefined },
   { id: crypto.randomUUID(), src: "RagingPrinceCard.png", dz: undefined },
   { id: crypto.randomUUID(), src: "SkeletonsCard.png", dz: undefined },
-]
+];
+
+const activeDraggableAtom = atom<Draggable>();
 
 export default function App() {
   const [draggables, setDraggables] = useState<Draggable[]>(defaultDraggables);
+  const [activeDraggable, setActiveDraggable] = useAtom(activeDraggableAtom);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const activeId = active.id as string;
+    const draggable = draggables.find(item => item.id === activeId) || undefined;
+    setActiveDraggable(draggable);
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over) return;
+    if (!over) return setActiveDraggable(undefined);
 
     const overId = over.id as string;
     const activeId = active.id as string;
@@ -42,20 +53,24 @@ export default function App() {
       if (oldIndex === newIndex) return prev;
 
       return arrayMove(prev, oldIndex, newIndex);
-
     });
+
+    setActiveDraggable(undefined);
   }
 
   return (
     <>
       <div className='w-screen h-screen flex flex-col gap-16 justify-center items-center'>
-        <DndContext onDragEnd={handleDragEnd}>
+        <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
           <DropZone draggables={draggables} />
           <div className='flex gap-2'>
             {draggables.filter(draggable => !draggable.dz).map((draggable) => (
               <Draggable key={draggable.id} draggable={draggable} />
             ))}
           </div>
+          <DragOverlay>
+            {activeDraggable && <DraggableContent draggable={activeDraggable} isDragging={true} />}
+          </DragOverlay>
         </DndContext>
       </div>
     </>
@@ -92,8 +107,10 @@ function DropZone({ draggables }: { draggables?: Draggable[] }) {
   );
 }
 
-function Draggable({ draggable }: { draggable: Draggable }) {
-  const { id, src } = draggable;
+function Draggable({ draggable }: { draggable?: Draggable }) {
+  if (!draggable) return null;
+
+  const { id } = draggable;
   const { setNodeRef, listeners, attributes, transform } = useSortable({ id });
 
   const style = {
@@ -104,8 +121,26 @@ function Draggable({ draggable }: { draggable: Draggable }) {
 
   return (
     <button ref={setNodeRef} className='cursor-pointer' style={style} {...listeners} {...attributes}  >
-      <img src={`/src/assets/${src}`} alt="draggable" className='max-h-30 aspect-[0.833] object-cover' />
+      <DraggableContent draggable={draggable} />
     </button>
   );
+}
 
+function DraggableContent({ draggable, isDragging }: { draggable?: Draggable, isDragging?: boolean }) {
+  if (!draggable) return null;
+
+  const { id, src } = draggable;
+  const activeDraggableId = useAtomValue(activeDraggableAtom)?.id;
+
+  const style: { opacity?: number } = {
+    opacity: isDragging || activeDraggableId !== id ? 0.6 : 0
+  };
+
+  return (
+    <img
+      src={`/src/assets/${src}`}
+      style={style}
+      alt="draggable"
+      className='max-h-30 aspect-[0.833] object-cover' />
+  );
 }
