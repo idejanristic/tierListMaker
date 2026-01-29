@@ -11,12 +11,12 @@ type Draggable = {
 }
 
 const defaultDraggables: Draggable[] = [
-  { id: crypto.randomUUID(), src: "GolemCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "MegaKnight.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "BabyDragonCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "BarbariansCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "BomberCard.png", dz: undefined },
-  { id: crypto.randomUUID(), src: "DarkPrinceCard.png", dz: undefined },
+  { id: crypto.randomUUID(), src: "GolemCard.png", dz: 'drop-zone' },
+  { id: crypto.randomUUID(), src: "MegaKnight.png", dz: 'drop-zone' },
+  { id: crypto.randomUUID(), src: "BabyDragonCard.png", dz: 'drop-zone' },
+  { id: crypto.randomUUID(), src: "BarbariansCard.png", dz: 'drop-zone' },
+  { id: crypto.randomUUID(), src: "BomberCard.png", dz: 'drop-zone' },
+  { id: crypto.randomUUID(), src: "DarkPrinceCard.png", dz: 'drop-zone' },
   { id: crypto.randomUUID(), src: "ElixirGolemCard.png", dz: undefined },
   { id: crypto.randomUUID(), src: "MinerCard.png", dz: undefined },
   { id: crypto.randomUUID(), src: "PEKKACard.png", dz: undefined },
@@ -47,18 +47,29 @@ export default function App() {
     const activeId = active.id as string;
 
     setDraggables((prev) => {
+      const overDraggable = prev.find(item => item.id === overId);
+      const overDropZone = !!overDraggable?.dz;
+
       const oldIndex = prev.findIndex(item => item.id === activeId);
       const newIndex = prev.findIndex(item => item.id === overId);
 
       if (oldIndex === newIndex) return prev;
 
-      return arrayMove(prev, oldIndex, newIndex);
+      const shiftedItems = arrayMove(prev, oldIndex, newIndex);
+
+
+
+      shiftedItems[newIndex] = { ...shiftedItems[newIndex], dz: overDropZone ? 'drop-zone' : undefined };
+
+      return shiftedItems;
     });
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDraggable(undefined);
   }
+
+  const freeDraggables = draggables.filter(draggable => !draggable.dz);
 
   return (
     <>
@@ -69,11 +80,13 @@ export default function App() {
           onDragOver={handleDragOver}
         >
           <DropZone draggables={draggables} />
-          <div className='flex gap-2'>
-            {draggables.filter(draggable => !draggable.dz).map((draggable) => (
-              <Draggable key={draggable.id} draggable={draggable} />
-            ))}
-          </div>
+          <SortableContext items={freeDraggables.map(item => item.id)}>
+            <div className='flex gap-2'>
+              {freeDraggables.map((draggable) => (
+                <Draggable key={draggable.id} draggable={draggable} />
+              ))}
+            </div>
+          </SortableContext>
           <DragOverlay>
             {activeDraggable && <DraggableContent draggable={activeDraggable} isDragging={true} />}
           </DragOverlay>
@@ -94,7 +107,7 @@ function DropZone({ draggables }: { draggables?: Draggable[] }) {
 
   if (items && items.length > 0) {
     return (
-      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-center mb-4'>
+      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-start mb-4'>
         <div className='flex gap-2'>
           <SortableContext items={items?.map(item => item.id)}>
             {items?.map((draggable) => (
