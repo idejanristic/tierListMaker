@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable'
 import { atom, useAtom, useAtomValue } from 'jotai'
 
@@ -34,17 +34,17 @@ export default function App() {
     const { active } = event;
     const activeId = active.id as string;
     const draggable = draggables.find(item => item.id === activeId) || undefined;
+
     setActiveDraggable(draggable);
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
 
-    if (!over) return setActiveDraggable(undefined);
+    if (!over) return;
 
     const overId = over.id as string;
     const activeId = active.id as string;
-
 
     setDraggables((prev) => {
       const oldIndex = prev.findIndex(item => item.id === activeId);
@@ -54,14 +54,20 @@ export default function App() {
 
       return arrayMove(prev, oldIndex, newIndex);
     });
+  }
 
+  const handleDragEnd = (event: DragEndEvent) => {
     setActiveDraggable(undefined);
   }
 
   return (
     <>
       <div className='w-screen h-screen flex flex-col gap-16 justify-center items-center'>
-        <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+        <DndContext
+          onDragEnd={handleDragEnd}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+        >
           <DropZone draggables={draggables} />
           <div className='flex gap-2'>
             {draggables.filter(draggable => !draggable.dz).map((draggable) => (
@@ -111,12 +117,13 @@ function Draggable({ draggable }: { draggable?: Draggable }) {
   if (!draggable) return null;
 
   const { id } = draggable;
-  const { setNodeRef, listeners, attributes, transform } = useSortable({ id });
+  const { setNodeRef, listeners, attributes, transform, transition } = useSortable({ id });
 
   const style = {
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
+    transition,
   }
 
   return (
