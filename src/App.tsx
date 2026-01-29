@@ -106,7 +106,7 @@ export default function App() {
       }
 
       // Case #2 If we're re-arranging within the same drop zone  
-      if (currentDropZone.draggables.some(item => item === overId)) {
+      else if (currentDropZone.draggables.some(item => item === overId)) {
         const oldIndex = currentDropZone.draggables.findIndex(item => item === activeDraggableId);
         const newIndex = currentDropZone.draggables.findIndex(item => item === overId);
 
@@ -123,6 +123,42 @@ export default function App() {
       }
 
       // Case #3 If we're re-areranging between drop zones
+      else if (
+        !currentDropZone.draggables.some((draggable) => draggable === overId)
+      ) {
+        const newDropZone = dropZones.find((dz) =>
+          dz.draggables.some((draggable) => draggable === overId),
+        );
+
+        if (!newDropZone) return prev;
+
+        const overIndex = newDropZone.draggables.findIndex(
+          (draggable) => draggable === overId,
+        );
+
+        const newDraggables = newDropZone.draggables.toSpliced(
+          overIndex,
+          0,
+          activeDraggableId,
+        );
+
+        return prev.map((dz) => {
+          // If not the new OR old dropZone, just return it as is
+          if (dz.id !== currentDropZoneId && dz.id !== newDropZone.id) return dz
+          // Remove from the old one
+          else if (dz.id === currentDropZoneId)
+            return {
+              ...dz,
+              draggables: dz.draggables.filter(
+                (draggable) => draggable !== activeDraggableId,
+              ),
+            }
+
+          // Add to new
+          return { ...dz, draggables: newDraggables }
+        })
+      }
+
       return prev;
     });
   }
