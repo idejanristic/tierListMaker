@@ -1,55 +1,35 @@
 import { useState } from 'react'
 import './App.css'
-import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/core'
-import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable'
-import { atom, useAtom, useAtomValue } from 'jotai'
+import { DndContext, DragOverlay, type DragEndEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
+import { useAtom, useAtomValue } from 'jotai'
+import type { Draggable, DropZone as DZ } from './types/dnd'
+import { activeDraggableAtom, defaultDraggablesAtom } from './state/dndAtoms'
+import { DraggableContent } from './components/DraggableContent'
+import { DropZone } from './components/DropZone'
+import { FreeDropZone } from './components/FreeDropZone'
 
-type Draggable = {
-  id: string
-  src: string
-  dz?: string
-}
-
-type DropZone = {
-  id: string,
-  draggables: string[],
-  color?: string
-}
-
-const defaultDraggables: Draggable[] = [
-  { id: crypto.randomUUID(), src: "GolemCard.png" },
-  { id: crypto.randomUUID(), src: "MegaKnight.png" },
-  { id: crypto.randomUUID(), src: "BabyDragonCard.png" },
-  { id: crypto.randomUUID(), src: "BarbariansCard.png" },
-  { id: crypto.randomUUID(), src: "BomberCard.png" },
-  { id: crypto.randomUUID(), src: "DarkPrinceCard.png" },
-  { id: crypto.randomUUID(), src: "ElixirGolemCard.png" },
-  { id: crypto.randomUUID(), src: "MinerCard.png" },
-  { id: crypto.randomUUID(), src: "PEKKACard.png" },
-  { id: crypto.randomUUID(), src: "RagingPrinceCard.png" },
-  { id: crypto.randomUUID(), src: "SkeletonsCard.png" },
-];
-
-const defaultDropZones: DropZone[] = [
-  { id: "S", draggables: [], color: "rgb(255, 127, 127)" },
-  { id: "A", draggables: [], color: "rgb(255, 192, 127)" },
-  { id: "B", draggables: [], color: "rgb(255, 255, 127)" },
-  { id: "C", draggables: [], color: "rgb(127, 255, 127)" },
-  { id: "D", draggables: [], color: "rgb(127, 192, 255)" },
-  {
-    id: "free",
-    draggables: defaultDraggables.map((draggable) => draggable.id),
-    color: "rgb(200, 200, 200)",
-  },
-];
-
-const dropZoneIds = defaultDropZones.map(dz => dz.id);
-
-const activeDraggableAtom = atom<Draggable>();
 
 export default function App() {
+  const defaultDraggables = useAtomValue(defaultDraggablesAtom);
+
+  const defaultDropZones: DZ[] = [
+    { id: "S", draggables: [], color: "rgb(255, 127, 127)" },
+    { id: "A", draggables: [], color: "rgb(255, 192, 127)" },
+    { id: "B", draggables: [], color: "rgb(255, 255, 127)" },
+    { id: "C", draggables: [], color: "rgb(127, 255, 127)" },
+    { id: "D", draggables: [], color: "rgb(127, 192, 255)" },
+    {
+      id: "free",
+      draggables: defaultDraggables.map((draggable) => draggable.id),
+      color: "rgb(200, 200, 200)",
+    },
+  ];
+
+  const dropZoneIds = defaultDropZones.map(dz => dz.id);
+
   const [draggables, setDraggables] = useState<Draggable[]>(defaultDraggables);
-  const [dropZones, setDropZones] = useState<DropZone[]>(defaultDropZones);
+  const [dropZones, setDropZones] = useState<DZ[]>(defaultDropZones);
 
   const [activeDraggable, setActiveDraggable] = useAtom(activeDraggableAtom);
 
@@ -168,9 +148,8 @@ export default function App() {
     setActiveDraggable(undefined);
   }
 
-  const freeDraggables = draggables.filter(draggable => !draggable.dz);
-
   const freeDropZone = dropZones.find(dz => dz.id === "free");
+
   if (!freeDropZone) return null;
 
   return (
@@ -194,125 +173,4 @@ export default function App() {
       </div>
     </>
   )
-}
-
-function DropZone({ dropZone }: { dropZone: DropZone }) {
-  const { id, draggables } = dropZone;
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  const style = {
-    backgroundColor: isOver ? '#444' : undefined,
-  };
-
-  const backgroundColor = dropZone.color;
-
-  if (draggables && draggables.length > 0) {
-    return (
-      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex  mb-1'>
-        <div className='w-45 text-black text-4xl text-semibold flex justify-center items-center p-4' style={{ backgroundColor }} >
-          <h2>{dropZone.id}</h2>
-        </div>
-        <div className='flex gap-1 flex-1 justify-start items-center'>
-          <SortableContext items={draggables}>
-            {draggables.map((draggableId) => {
-              const draggable = defaultDraggables.find(item => item.id === draggableId);
-
-              if (!draggable) return null;
-
-              return (
-                <Draggable key={draggable.id} draggable={draggable} />
-              );
-            })}
-          </SortableContext>
-        </div>
-      </div >
-    );
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex mb-1'>
-      <div className='w-45 text-black text-4xl text-semibold flex justify-center items-center p-4' style={{ backgroundColor }} >
-        <h2>{dropZone.id}</h2>
-      </div>
-      <div className='flex flex-1 justify-center items-center'>
-        <p className='text-gray-400'>Drop Here</p>
-      </div>
-    </div>
-  );
-}
-
-function FreeDropZone({ dropZone }: { dropZone: DropZone }) {
-  const { id, draggables } = dropZone;
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  const style = {
-    backgroundColor: isOver ? '#444' : undefined,
-  };
-
-  if (draggables && draggables.length > 0) {
-    return (
-      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex mb-1'>
-        <div className='flex gap-1 flex-1 justify-center items-center'>
-          <SortableContext items={draggables}>
-            {draggables.map((draggableId) => {
-              const draggable = defaultDraggables.find(item => item.id === draggableId);
-
-              if (!draggable) return null;
-
-              return (
-                <Draggable key={draggable.id} draggable={draggable} />
-              );
-            })}
-          </SortableContext>
-        </div>
-      </div >
-    );
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex mb-1'>
-      <div className='flex flex-1 justify-center items-center'>
-        <p className='text-gray-400'>Drop Here</p>
-      </div>
-    </div>
-  );
-}
-
-function Draggable({ draggable }: { draggable?: Draggable }) {
-  if (!draggable) return null;
-
-  const { id } = draggable;
-  const { setNodeRef, listeners, attributes, transform, transition } = useSortable({ id });
-
-  const style = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
-    transition,
-  }
-
-  return (
-    <button ref={setNodeRef} className='cursor-pointer' style={style} {...listeners} {...attributes}  >
-      <DraggableContent draggable={draggable} />
-    </button>
-  );
-}
-
-function DraggableContent({ draggable, isDragging }: { draggable?: Draggable, isDragging?: boolean }) {
-  if (!draggable) return null;
-
-  const { id, src } = draggable;
-  const activeDraggableId = useAtomValue(activeDraggableAtom)?.id;
-
-  const style: { opacity?: number } = {
-    opacity: isDragging || activeDraggableId !== id ? 0.6 : 0
-  };
-
-  return (
-    <img
-      src={`/src/assets/${src}`}
-      style={style}
-      alt="draggable"
-      className='max-h-30 aspect-[0.833] object-cover' />
-  );
 }
