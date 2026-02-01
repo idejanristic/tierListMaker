@@ -12,7 +12,8 @@ type Draggable = {
 
 type DropZone = {
   id: string,
-  draggables: string[]
+  draggables: string[],
+  color?: string
 }
 
 const defaultDraggables: Draggable[] = [
@@ -30,14 +31,15 @@ const defaultDraggables: Draggable[] = [
 ];
 
 const defaultDropZones: DropZone[] = [
-  { id: "S", draggables: [] },
-  { id: "A", draggables: [] },
-  { id: "B", draggables: [] },
-  { id: "C", draggables: [] },
-  { id: "D", draggables: [] },
+  { id: "S", draggables: [], color: "rgb(255, 127, 127)" },
+  { id: "A", draggables: [], color: "rgb(255, 192, 127)" },
+  { id: "B", draggables: [], color: "rgb(255, 255, 127)" },
+  { id: "C", draggables: [], color: "rgb(127, 255, 127)" },
+  { id: "D", draggables: [], color: "rgb(127, 192, 255)" },
   {
     id: "free",
     draggables: defaultDraggables.map((draggable) => draggable.id),
+    color: "rgb(200, 200, 200)",
   },
 ];
 
@@ -67,14 +69,13 @@ export default function App() {
     const overId = over.id as string;
     const activeDraggableId = active.id as string;
 
+    const currentDropZone = dropZones.find(dz => dz.draggables.some(draggable => draggable === activeDraggableId));
+
+    if (!currentDropZone) return;
+
+    const currentDropZoneId = currentDropZone.id;
+
     setDropZones((prev) => {
-
-      const currentDropZone = dropZones.find(dz => dz.draggables.some(draggable => draggable === activeDraggableId));
-
-      if (!currentDropZone) return prev;
-
-      const currentDropZoneId = currentDropZone.id;
-
       // Case #1 If we're hovering the empty space in a drop zone
       if (dropZoneIds.includes(overId)) {
         const dropZone = dropZones.find(dz => dz.id === overId);
@@ -169,17 +170,23 @@ export default function App() {
 
   const freeDraggables = draggables.filter(draggable => !draggable.dz);
 
+  const freeDropZone = dropZones.find(dz => dz.id === "free");
+  if (!freeDropZone) return null;
+
   return (
     <>
-      <div className='w-full h-screen flex flex-col gap-6 justify-start items-center'>
+      <div className='w-full h-screen flex flex-col  justify-start items-center'>
         <DndContext
           onDragEnd={handleDragEnd}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
         >
-          {dropZones.map((dropZone) => (
-            <DropZone key={dropZone.id} dropZone={dropZone} />
-          ))}
+          <div className="w-full mb-8">
+            {dropZones.filter(dz => dz.id !== "free").map((dropZone) => (
+              <DropZone key={dropZone.id} dropZone={dropZone} />
+            ))}
+          </div>
+          <FreeDropZone dropZone={freeDropZone} />
           <DragOverlay>
             {activeDraggable && <DraggableContent draggable={activeDraggable} isDragging={true} />}
           </DragOverlay>
@@ -197,10 +204,15 @@ function DropZone({ dropZone }: { dropZone: DropZone }) {
     backgroundColor: isOver ? '#444' : undefined,
   };
 
+  const backgroundColor = dropZone.color;
+
   if (draggables && draggables.length > 0) {
     return (
-      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex flex-col justify-center items-start mb-4'>
-        <div className='flex gap-2'>
+      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex  mb-1'>
+        <div className='w-45 text-black text-4xl text-semibold flex justify-center items-center p-4' style={{ backgroundColor }} >
+          <h2>{dropZone.id}</h2>
+        </div>
+        <div className='flex gap-1 flex-1 justify-start items-center'>
           <SortableContext items={draggables}>
             {draggables.map((draggableId) => {
               const draggable = defaultDraggables.find(item => item.id === draggableId);
@@ -218,8 +230,50 @@ function DropZone({ dropZone }: { dropZone: DropZone }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex justify-center items-center mb-4'>
-      <p className='text-gray-400'>Drop Here</p>
+    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex mb-1'>
+      <div className='w-45 text-black text-4xl text-semibold flex justify-center items-center p-4' style={{ backgroundColor }} >
+        <h2>{dropZone.id}</h2>
+      </div>
+      <div className='flex flex-1 justify-center items-center'>
+        <p className='text-gray-400'>Drop Here</p>
+      </div>
+    </div>
+  );
+}
+
+function FreeDropZone({ dropZone }: { dropZone: DropZone }) {
+  const { id, draggables } = dropZone;
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  const style = {
+    backgroundColor: isOver ? '#444' : undefined,
+  };
+
+  if (draggables && draggables.length > 0) {
+    return (
+      <div ref={setNodeRef} style={style} className='border border-white bg-[#333] w-full flex mb-1'>
+        <div className='flex gap-1 flex-1 justify-center items-center'>
+          <SortableContext items={draggables}>
+            {draggables.map((draggableId) => {
+              const draggable = defaultDraggables.find(item => item.id === draggableId);
+
+              if (!draggable) return null;
+
+              return (
+                <Draggable key={draggable.id} draggable={draggable} />
+              );
+            })}
+          </SortableContext>
+        </div>
+      </div >
+    );
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className='border border-white bg-[#333] h-30 w-full flex mb-1'>
+      <div className='flex flex-1 justify-center items-center'>
+        <p className='text-gray-400'>Drop Here</p>
+      </div>
     </div>
   );
 }
