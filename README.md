@@ -8,8 +8,6 @@ The app works as a **tier list builder**, where users can drag items between
 different tiers (S, A, B, C, D), reorder items within the same tier, and move them
 back to the *free* area.
 
----
-
 ## ✨ Features
 
 - Drag & drop between multiple drop zones
@@ -19,7 +17,6 @@ back to the *free* area.
 - Modular and scalable project structure
 - Fully type-safe implementation with TypeScript
 
----
 
 ## 🛠 Tech Stack
 
@@ -32,7 +29,6 @@ back to the *free* area.
 - **Jotai**
 - **Tailwind CSS**
 
----
 
 ## 📁 Project Structure
 
@@ -52,3 +48,10 @@ src/
 │
 ├── App.tsx
 └── main.tsx
+```
+
+### Instaltion 
+
+1. Run the command `npm install`
+2. Run the command `npm run dev`
+3. Since Sail is already up, you can just visit http://localhost:5173
